@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
 import findspark
 
 
@@ -32,27 +33,18 @@ categories = spark.createDataFrame([
 ])
 
 relations = spark.createDataFrame([
-    {'category_name': 'кошка', 'products': ['кот подсолнух']},
-    {'category_name':'игрушка', 'products': ['кот подсолнух', 'кубик рубика']},
-    {'category_name':'мониторы', 'products': ['монитор hp', 'монитор asus']},
-    {'category_name':'блокноты', 'products': ['ежедневник']},
-    {'category_name':'канцтовары', 'products': ['ежедневник']}
+    {'category_name': 'кошка', 'product_name': ['кот подсолнух']},
+    {'category_name':'игрушка', 'product_name': ['кот подсолнух', 'кубик рубика']},
+    {'category_name':'мониторы', 'product_name': ['монитор hp', 'монитор asus']},
+    {'category_name':'блокноты', 'product_name': ['ежедневник']},
+    {'category_name':'канцтовары', 'product_name': ['ежедневник']}
 ])
 
-multirow = relations.filter(len(relations.products))
 
-# по идее должно получиться так 
-# ([
-#     {'product_name': 'кот подсолнух', 'category_name': 'кошка'}, 
-#     {'product_name': 'кот подсолнух', 'category_name': 'игрушка'},
-#     {'product_name': 'кубик рубика', 'category_name': 'игрушка'}, 
-#     {'product_name': 'монитор HP', 'category_name': 'монитор'},
-#     {'product_name': 'монитор asus', 'category_name': 'монитор'},
-#     {'product_name': 'ежедневник', 'category_name': 'блокноты'},
-#     {'product_name': 'ежедневник', 'category_name': 'канцтовары'}
-#     {'product_name': 'энергетик redbull', 'category_name': None}
-# ])
+multirows = relations.select(relations.category_name, F.explode_outer(relations.product_name))
+compare_1 = multirows.drop('category_name')
+uncategorized = products.subtract(compare_1)
+uncategorized = uncategorized.withColumn("category_name", F.lit(None))
+result = multirows.union(uncategorized)
 
-# print(products.show())
-# print(categories.show())
-print(multirow.show())
+result.show()
